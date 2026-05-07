@@ -9,3 +9,6 @@ WantedBy=graphical-session.target
 [Service]
 ExecStart=/home/dio/tools/sasha/target/debug/sasha
 Restart=on-failure
+
+StandardOutput=append:/home/dio/.local/state/sasha/sasha.log
+StandardError=append:/home/dio/.local/state/sasha/sasha.log
