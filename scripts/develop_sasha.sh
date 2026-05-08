@@ -1,5 +1,14 @@
 #!/usr/bin/env bash
+set -euo pipefail
 
-cargo build &&
+systemctl --user import-environment \
+  NIRI_SOCKET \
+  WAYLAND_DISPLAY \
+  DISPLAY \
+  XDG_CURRENT_DESKTOP \
+  XDG_SESSION_TYPE \
+  XDG_RUNTIME_DIR
+
+cargo build -p sasha-daemon &&
 systemctl --user restart sasha.service &&
-journalctl --user -u sasha.service -n 20 --no-pager
+journalctl --user -fu sasha.service
