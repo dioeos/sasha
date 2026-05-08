@@ -9,7 +9,6 @@ use tracing::{info, Level};
 use tracing_subscriber::FmtSubscriber;
 
 use dotenvy::dotenv;
-use std::env;
 
 fn main() -> Result<()>{
      let subscriber = FmtSubscriber::builder()
@@ -22,7 +21,7 @@ fn main() -> Result<()>{
      dotenv().expect("Failed to load .env file");
      info!("Successfully loaded environment variables...");
 
-     let niri_socket_path = env::var("NIRI_SOCKET_PATH").expect("Set your niri's socket path.");
+     let niri_socket_path = std::env::var("NIRI_SOCKET").expect("NIRI_SOCKET is not set");
 
      let path = Path::new("/tmp/sasha/foo.txt");
      let writer_stream = UnixStream::connect(niri_socket_path)?;
