@@ -12,3 +12,4 @@ systemctl --user import-environment \
 cargo build -p sasha-daemon &&
 systemctl --user restart sasha.service &&
 journalctl --user -fu sasha.service
+  
