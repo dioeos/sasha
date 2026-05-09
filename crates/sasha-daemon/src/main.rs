@@ -1,4 +1,4 @@
-use std::fs::{self, File};
+use std::fs::{self};
 use std::io::{BufReader, BufWriter, Result, prelude::*};
 use std::path::Path;
 use std::thread;
@@ -8,8 +8,6 @@ use std::os::unix::net::UnixStream;
 use tracing::{info, Level};
 use tracing_subscriber::FmtSubscriber;
 
-use dotenvy::dotenv;
-
 fn main() -> Result<()>{
      let subscriber = FmtSubscriber::builder()
          .with_max_level(Level::TRACE)
@@ -18,8 +16,6 @@ fn main() -> Result<()>{
          .expect("Failed to set tracing subscriber!");
 
      info!("Starting sasha daemon...");
-     dotenv().expect("Failed to load .env file");
-     info!("Successfully loaded environment variables...");
 
      let niri_socket_path = std::env::var("NIRI_SOCKET").expect("NIRI_SOCKET is not set");
 
