@@ -10,6 +10,5 @@ systemctl --user import-environment \
   XDG_RUNTIME_DIR
 
 cargo build -p sasha-daemon &&
-systemctl --user restart sasha.service &&
-journalctl --user -fu sasha.service
+systemctl --user restart sasha.service
   

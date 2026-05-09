@@ -14,6 +14,11 @@ enum Commands {
     Stop {
         #[arg(long)]
         service: bool
+    },
+
+    Logs {
+        #[arg(long)]
+        service: bool
     }
 }
 
@@ -46,16 +51,22 @@ fn main() {
     match args.command {
         Commands::Update { daemon, service } => {
             if daemon {
-                run_script("./scripts/update_daemon.sh");
+                run_script("./scripts/daemon/update_daemon.sh");
             }
             if service {
-                run_script("./scripts/update_service.sh");
+                run_script("./scripts/service/update_service.sh");
             }
         }
 
         Commands::Stop { service } => {
             if service {
-                run_script("./scripts/stop_sasha_service.sh");
+                run_script("./scripts/service/stop_sasha_service.sh");
+            }
+        }
+
+        Commands::Logs { service } => {
+            if service {
+                run_script("./scripts/utils/start_live_sasha_logs.sh");
             }
         }
     }
