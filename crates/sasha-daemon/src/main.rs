@@ -34,7 +34,7 @@ fn main() -> Result<()>{
          fs::create_dir_all(parent)?;
      }
 
-    let mut file = File::create("/tmp/sasha/foo.txt")?;
+    // let mut file = File::create("/tmp/sasha/foo.txt")?;
     loop {
         writer.write_all(b"\"FocusedWindow\"\n")?;
         writer.flush()?;
@@ -42,9 +42,7 @@ fn main() -> Result<()>{
         let mut response = String::new();
         reader.read_line(&mut response)?;
 
-        writeln!(file, "{response}")?;
-        file.flush()?;
-
+        info!("{response}");
         thread::sleep(Duration::from_secs(1));
     }
 }

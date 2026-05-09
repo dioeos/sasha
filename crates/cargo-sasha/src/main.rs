@@ -54,7 +54,7 @@ fn main() {
                 run_script("./scripts/daemon/update_daemon.sh");
             }
             if service {
-                run_script("./scripts/service/update_service.sh");
+                run_script("./scripts/service/update_sasha_service.sh");
             }
         }
 
