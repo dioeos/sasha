@@ -1,0 +1,24 @@
+use std::fs;
+use tokio::sync::broadcast;
+use tracing::info;
+use tokio::net::UnixListener;
+
+use crate::events::SashaEvent;
+
+pub async fn accept_sasha_clients(tx: broadcast::Sender<SashaEvent>) -> anyhow::Result<()> {
+    info!("Attempting to accept clients on Sasha UNIX stream...");
+
+    let runtime_dir = std::env::var("XDG_RUNTIME_DIR").expect("XDG_RUNTIME_DIR is not set");
+    let socket_path = format!("{runtime_dir}/sasha.sock");
+
+    fs::remove_file(&socket_path).expect("Could not clear existing sasha socket");
+
+    let listener = UnixListener::bind(&socket_path)?;
+    info!("Sasha established listener socket at {socket_path}");
+
+    loop {
+        info!("Attempting to subscribe to stream...");
+        let (stream, _) = listener.accept().await?;
+        let rx = tx.subscribe();
+    }
+}
