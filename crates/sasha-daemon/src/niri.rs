@@ -3,13 +3,14 @@ use tokio::sync::broadcast;
 use tokio::net::UnixStream;
 use tracing::info;
 
+use std::collections::HashMap;
+
 use serde::Deserialize;
 
 use crate::events::SashaEvent;
 
 #[derive(serde::Deserialize, Debug)]
 enum NiriEvent {
-    Ok(String),
     WorkspacesChanged {
         workspaces: Vec<NiriWorkspace>
     },
@@ -45,7 +46,22 @@ struct NiriWindow {
     is_urgent: bool
 }
 
+pub struct WindowStore {
+    pub map: HashMap<u64, String>
+}
+
+impl WindowStore {
+    pub fn new() -> Self {
+        Self { map: HashMap::new() }
+    }
+
+    pub fn get_window_name(&self, key: &u64) -> Option<&String> {
+        self.map.get(key)
+    }
+}
+
 pub async fn read_niri_events(tx: broadcast::Sender<SashaEvent>) -> anyhow::Result<()> {
+    let mut window_store = WindowStore::new();
 
     info!("Connecting to Niri event stream...");
     let niri_socket_path = std::env::var("NIRI_SOCKET").expect("NIRI_SOCKET is not set");
@@ -76,26 +92,12 @@ pub async fn read_niri_events(tx: broadcast::Sender<SashaEvent>) -> anyhow::Resu
         let data: NiriEvent = match serde_json::from_str(&response) {
             Ok(data) => data,
             Err(err) => {
-                let value: serde_json::Value = serde_json::from_str(&response)?;
-
-                if let Some(obj) = value.as_object() {
-                    if let Some(event_name) = obj.keys().next() {
-                        info!("Ignoring niri event: {event_name}");
-                    }
-                } else {
-                    info!("Failed to parse niri event: {err}");
-                    info!("Raw event was: {response}");
-                }
-
+                info!("Failed to parse niri event: {err}");
+                info!("Raw event was: {response}");
                 continue;
             }
         };
         match data {
-            NiriEvent::Ok(status) => {
-                if status != "Handled" {
-                    info!("Niri could not handle event stream subscribe request from Sasha.");
-                }
-            }
             NiriEvent::WorkspacesChanged { workspaces } => {
                 for workspace in workspaces {
                     if workspace.is_focused {
@@ -110,6 +112,10 @@ pub async fn read_niri_events(tx: broadcast::Sender<SashaEvent>) -> anyhow::Resu
             }
             NiriEvent::WindowsChanged { windows } => {
                 for window in windows {
+                    window_store.map.insert(
+                        window.id,
+                        window.title.clone()
+                    );
                     if window.is_focused {
                         info!(
                             "Focused window {}: {} ({}) on {}",
@@ -120,10 +126,13 @@ pub async fn read_niri_events(tx: broadcast::Sender<SashaEvent>) -> anyhow::Resu
                         )
                     }
                     //convert to SashaEvent
+
                 }
             }
             NiriEvent::WindowFocusChanged { id } => {
-                info!("Window focus changed {}", id);
+                if let Some(name) = window_store.get_window_name(&id) {
+                    info!("Window focus changed {} | {}", id, name);
+                }
             }
         }
     }
