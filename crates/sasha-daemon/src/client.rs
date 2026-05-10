@@ -2,6 +2,7 @@ use std::fs;
 use tokio::sync::broadcast;
 use tracing::info;
 use tokio::net::UnixListener;
+use tokio::io::{AsyncWriteExt, AsyncBufReadExt, BufReader, BufWriter};
 
 use crate::events::SashaEvent;
 
@@ -17,8 +18,19 @@ pub async fn accept_sasha_clients(tx: broadcast::Sender<SashaEvent>) -> anyhow::
     info!("Sasha established listener socket at {socket_path}");
 
     loop {
-        info!("Attempting to subscribe to stream...");
         let (stream, _) = listener.accept().await?;
         let rx = tx.subscribe();
+
+        info!("Sasha client connected.");
+        tokio::spawn(handle_client(stream, rx));
+    }
+}
+
+async fn handle_client(stream: tokio::net::UnixStream, mut rx: broadcast::Receiver<SashaEvent>) -> anyhow::Result<()> {
+    let mut writer = BufWriter::new(stream);
+
+    loop {
+        let event = rx.recv().await?;
+        //parse json here
     }
 }
