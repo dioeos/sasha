@@ -13,12 +13,14 @@ pub enum Command {
         #[command(subcommand)]
         target: UpdateTarget
     },
-
+    Start {
+        #[command(subcommand)]
+        target: StartTarget
+    },
     Stop {
         #[command(subcommand)]
         target: StopTarget
     },
-
     Logs {
         #[command(subcommand)]
         target: LogsTarget
@@ -35,7 +37,10 @@ pub enum UpdateTarget {
 pub enum StopTarget {
     Service
 }
-
+#[derive(Subcommand)]
+pub enum StartTarget {
+    Service
+}
 #[derive(Subcommand)]
 pub enum LogsTarget {
     Service
@@ -57,6 +62,9 @@ pub fn determine_script_for(cmd: Command) -> &'static str {
         }
         Command::Update { target: UpdateTarget::Service } => {
             "./scripts/service/update_sasha_service.sh"
+        }
+        Command::Start { target: StartTarget::Service } => {
+            "./scripts/service/start_sasha_service.sh"
         }
         Command::Stop { target: StopTarget::Service } => {
             "./scripts/service/stop_sasha_service.sh"

@@ -8,7 +8,16 @@ use std::os::unix::net::UnixStream;
 use tracing::{info, Level};
 use tracing_subscriber::FmtSubscriber;
 
-fn main() -> Result<()>{
+use tokio::sync::broadcast;
+
+#[derive(Clone, Debug)]
+enum SashaEvent {
+    FocusedWindow(String),
+    WorkspaceChanged(u32),
+}
+
+#[tokio::main]
+async fn main() -> Result<()>{
      let subscriber = FmtSubscriber::builder()
          .with_max_level(Level::TRACE)
          .finish();
@@ -29,6 +38,8 @@ fn main() -> Result<()>{
      if let Some(parent) = path.parent() {
          fs::create_dir_all(parent)?;
      }
+
+     let (tx, mut rx1) = broadcast::channel::<SashaEvent>(16);
 
     // let mut file = File::create("/tmp/sasha/foo.txt")?;
     loop {
