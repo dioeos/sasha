@@ -126,12 +126,16 @@ pub async fn read_niri_events(tx: broadcast::Sender<SashaEvent>) -> anyhow::Resu
                         )
                     }
                     //convert to SashaEvent
-
                 }
             }
             NiriEvent::WindowFocusChanged { id } => {
                 if let Some(name) = window_store.get_window_name(&id) {
                     info!("Window focus changed {} | {}", id, name);
+                    let sevt = SashaEvent::SashaWindowFocusedChanged {
+                        id: id,
+                        window_name: name.clone()
+                    };
+                    tx.send(sevt)?;
                 }
             }
         }

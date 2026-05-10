@@ -4,6 +4,7 @@ use tracing::info;
 use tokio::net::UnixListener;
 use tokio::io::{AsyncWriteExt, AsyncBufReadExt, BufReader, BufWriter};
 
+
 use crate::events::SashaEvent;
 
 pub async fn accept_sasha_clients(tx: broadcast::Sender<SashaEvent>) -> anyhow::Result<()> {
@@ -31,6 +32,9 @@ async fn handle_client(stream: tokio::net::UnixStream, mut rx: broadcast::Receiv
 
     loop {
         let event = rx.recv().await?;
-        //parse json here
+        let json = serde_json::to_string(&event)?;
+        writer.write_all(json.as_bytes()).await?;
+        writer.write_all(b"\n").await?;
+        writer.flush().await?;
     }
 }
