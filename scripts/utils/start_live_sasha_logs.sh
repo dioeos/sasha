@@ -6,5 +6,5 @@ if ! systemctl --user is-active --quiet sasha.service; then
   exit 1
 fi
 
-journalctl --user -fu sasha.service
+journalctl --user -fu sasha.service -f
 
