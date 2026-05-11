@@ -20,6 +20,9 @@ enum NiriEvent {
     WindowFocusChanged {
         id: u64
     },
+    WindowOpenedOrChanged {
+        window: NiriWindow
+    }
 }
 
 #[derive(serde::Deserialize, Debug)]
@@ -140,6 +143,9 @@ pub async fn read_niri_events(tx: broadcast::Sender<SashaEvent>) -> anyhow::Resu
                         Err(err) => info!("No sasha clients received focused window event: {err}")
                     }
                 }
+            }
+            NiriEvent::WindowOpenedOrChanged { window } => {
+                window_store.map.insert(window.id, window.title.clone());
             }
         }
     }
