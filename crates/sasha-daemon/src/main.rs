@@ -19,7 +19,13 @@ async fn main() -> anyhow::Result<()>{
      info!("Starting sasha daemon...");
 
      let (tx, _) = broadcast::channel::<SashaEvent>(16);
-     tokio::spawn(niri::read_niri_events(tx.clone()));
+     let niri_tx = tx.clone();
+     // tokio::spawn(niri::read_niri_events(tx.clone()));
+     tokio::spawn(async move {
+         if let Err(err) = niri::read_niri_events(niri_tx).await {
+             tracing::error!("Niri event task stopped: {err}");
+         }
+     });
 
      client::accept_sasha_clients(tx).await?;
 

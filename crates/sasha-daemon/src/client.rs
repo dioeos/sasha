@@ -13,13 +13,15 @@ pub async fn accept_sasha_clients(tx: broadcast::Sender<SashaEvent>) -> anyhow::
     let runtime_dir = std::env::var("XDG_RUNTIME_DIR").expect("XDG_RUNTIME_DIR is not set");
     let socket_path = format!("{runtime_dir}/sasha.sock");
 
-    fs::remove_file(&socket_path).expect("Could not clear existing sasha socket");
+    // fs::remove_file(&socket_path).expect("Could not clear existing sasha socket");
+    fs::remove_file(&socket_path);
 
     let listener = UnixListener::bind(&socket_path)?;
     info!("Sasha established listener socket at {socket_path}");
 
     loop {
-        let (stream, _) = listener.accept().await?;
+        let (stream, addr) = listener.accept().await?;
+        info!("Sasha client connected: {:?}", addr);
         let rx = tx.subscribe();
 
         info!("Sasha client connected.");

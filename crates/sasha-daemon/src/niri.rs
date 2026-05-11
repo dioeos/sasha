@@ -135,7 +135,10 @@ pub async fn read_niri_events(tx: broadcast::Sender<SashaEvent>) -> anyhow::Resu
                         id: id,
                         window_name: name.clone()
                     };
-                    tx.send(sevt)?;
+                    match tx.send(sevt) {
+                        Ok(count) => info!("Sent focused window event to {count} clients"),
+                        Err(err) => info!("No sasha clients received focused window event: {err}")
+                    }
                 }
             }
         }

@@ -11,6 +11,3 @@ WorkingDirectory=/home/dio/tools/sasha
 EnvironmentFile=/home/dio/tools/sasha/.env
 ExecStart=/home/dio/tools/sasha/target/debug/sasha-daemon
 Restart=on-failure
-
-; StandardOutput=append:/home/dio/.local/state/sasha/sasha.log
-; StandardError=append:/home/dio/.local/state/sasha/sasha.log
