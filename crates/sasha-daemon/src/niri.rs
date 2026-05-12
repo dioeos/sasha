@@ -157,6 +157,8 @@ pub async fn read_niri_events(tx: broadcast::Sender<SashaEvent>) -> anyhow::Resu
             }
             NiriEvent::WindowOpenedOrChanged { window } => {
                 window_store.map.insert(window.id, window.title.clone());
+                let sevt = SashaEvent::SashaWindowOpenedOrChanged { id: window.id, window_name: window.title };
+                tx.send(sevt)?;
             }
             NiriEvent::WorkspaceActivated { id } => {
                 let sevt = SashaEvent::SashaWorkspaceActivated { id: id };

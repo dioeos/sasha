@@ -14,6 +14,10 @@ pub enum SashaEvent {
     },
     SashaWorkspaceActivated {
         id: u64,
+    },
+    SashaWindowOpenedOrChanged {
+        id: u64,
+        window_name: String
     }
 }
 
