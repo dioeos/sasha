@@ -11,6 +11,9 @@ pub enum SashaEvent {
     SashaWindowFocusedChanged {
         id: Option<u64>,
         window_name: String
+    },
+    SashaWorkspaceActivated {
+        id: u64,
     }
 }
 

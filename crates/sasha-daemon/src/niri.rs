@@ -22,6 +22,9 @@ enum NiriEvent {
     },
     WindowOpenedOrChanged {
         window: NiriWindow
+    },
+    WorkspaceActivated {
+        id: u64
     }
 }
 
@@ -154,6 +157,10 @@ pub async fn read_niri_events(tx: broadcast::Sender<SashaEvent>) -> anyhow::Resu
             }
             NiriEvent::WindowOpenedOrChanged { window } => {
                 window_store.map.insert(window.id, window.title.clone());
+            }
+            NiriEvent::WorkspaceActivated { id } => {
+                let sevt = SashaEvent::SashaWorkspaceActivated { id: id };
+                tx.send(sevt)?;
             }
         }
     }
