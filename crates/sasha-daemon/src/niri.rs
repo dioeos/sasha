@@ -82,6 +82,10 @@ impl WorkspaceStore {
             .map(|workspace| (workspace.id, workspace))
             .collect()
     }
+
+    pub fn get_workspace_idx(&self, key: u64) -> Option<&u64> {
+        self.map.get(&key).map(|workspace| &workspace.idx)
+    }
 }
 
 pub async fn read_niri_events(tx: broadcast::Sender<SashaEvent>) -> anyhow::Result<()> {
@@ -192,9 +196,11 @@ pub async fn read_niri_events(tx: broadcast::Sender<SashaEvent>) -> anyhow::Resu
                 }
             }
             NiriEvent::WorkspaceActivated { id } => {
-                let sevt = SashaEvent::SashaWorkspaceActivated { id: id };
-                if let Err(err) = tx.send(sevt) {
-                    tracing::warn!("No Sasha clients connected yet: {err}");
+                if let Some(idx) = workspace_store.get_workspace_idx(id) {
+                    let sevt = SashaEvent::SashaWorkspaceActivated { idx: *idx };
+                    if let Err(err) = tx.send(sevt) {
+                        tracing::warn!("No Sasha clients connected yet: {err}");
+                    }
                 }
             }
         }
