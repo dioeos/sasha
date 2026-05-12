@@ -151,18 +151,24 @@ pub async fn read_niri_events(tx: broadcast::Sender<SashaEvent>) -> anyhow::Resu
                     }
                     None => {
                         let sevt = SashaEvent::SashaWindowFocusedChanged { id: None , window_name: "None".to_string()};
-                        tx.send(sevt)?;
+                        if let Err(err) = tx.send(sevt) {
+                            tracing::warn!("No Sasha clients connected yet: {err}");
+                        }
                     }
                 }
             }
             NiriEvent::WindowOpenedOrChanged { window } => {
                 window_store.map.insert(window.id, window.title.clone());
                 let sevt = SashaEvent::SashaWindowOpenedOrChanged { id: window.id, window_name: window.title };
-                tx.send(sevt)?;
+                if let Err(err) = tx.send(sevt) {
+                    tracing::warn!("No Sasha clients connected yet: {err}");
+                }
             }
             NiriEvent::WorkspaceActivated { id } => {
                 let sevt = SashaEvent::SashaWorkspaceActivated { id: id };
-                tx.send(sevt)?;
+                if let Err(err) = tx.send(sevt) {
+                    tracing::warn!("No Sasha clients connected yet: {err}");
+                }
             }
         }
     }
