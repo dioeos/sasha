@@ -9,7 +9,7 @@ pub enum SashaEvent {
         sasha_windows: Vec<SashaWindow>
     },
     SashaWindowFocusedChanged {
-        id: u64,
+        id: Option<u64>,
         window_name: String
     }
 }

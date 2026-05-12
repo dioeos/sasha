@@ -18,7 +18,7 @@ enum NiriEvent {
         windows: Vec<NiriWindow>
     },
     WindowFocusChanged {
-        id: u64
+        id: Option<u64>
     },
     WindowOpenedOrChanged {
         window: NiriWindow
@@ -132,15 +132,23 @@ pub async fn read_niri_events(tx: broadcast::Sender<SashaEvent>) -> anyhow::Resu
                 }
             }
             NiriEvent::WindowFocusChanged { id } => {
-                if let Some(name) = window_store.get_window_name(&id) {
-                    info!("Window focus changed {} | {}", id, name);
-                    let sevt = SashaEvent::SashaWindowFocusedChanged {
-                        id: id,
-                        window_name: name.clone()
-                    };
-                    match tx.send(sevt) {
-                        Ok(count) => info!("Sent focused window event to {count} clients"),
-                        Err(err) => info!("No sasha clients received focused window event: {err}")
+                match id {
+                    Some(id) => {
+                        if let Some(name) = window_store.get_window_name(&id) {
+                            info!("Window focus changed {} | {}", id, name);
+                            let sevt = SashaEvent::SashaWindowFocusedChanged {
+                                id: Some(id),
+                                window_name: name.clone()
+                            };
+                            match tx.send(sevt) {
+                                Ok(count) => info!("Sent focused window event to {count} clients"),
+                                Err(err) => info!("No sasha clients received focused window event: {err}")
+                            }
+                        }
+                    }
+                    None => {
+                        let sevt = SashaEvent::SashaWindowFocusedChanged { id: None , window_name: "None".to_string()};
+                        tx.send(sevt)?;
                     }
                 }
             }
