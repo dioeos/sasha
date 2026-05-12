@@ -7,7 +7,7 @@ use std::collections::HashMap;
 
 use serde::Deserialize;
 
-use crate::events::SashaEvent;
+use crate::events::{self, SashaEvent};
 
 #[derive(serde::Deserialize, Debug)]
 enum NiriEvent {
@@ -66,8 +66,27 @@ impl WindowStore {
     }
 }
 
+pub struct WorkspaceStore {
+    pub map: HashMap<u64, NiriWorkspace>
+}
+
+impl WorkspaceStore {
+    pub fn new() -> Self {
+        Self { map: HashMap::new() }
+    }
+
+    //used for updating the workspace store for when received NiriEvent::WorkspacesChanged
+    pub fn replace_all(&mut self, workspaces: Vec<NiriWorkspace>) {
+        self.map = workspaces
+            .into_iter()
+            .map(|workspace| (workspace.id, workspace))
+            .collect()
+    }
+}
+
 pub async fn read_niri_events(tx: broadcast::Sender<SashaEvent>) -> anyhow::Result<()> {
     let mut window_store = WindowStore::new();
+    let mut workspace_store = WorkspaceStore::new();
 
     info!("Connecting to Niri event stream...");
     let niri_socket_path = std::env::var("NIRI_SOCKET").expect("NIRI_SOCKET is not set");
@@ -92,9 +111,6 @@ pub async fn read_niri_events(tx: broadcast::Sender<SashaEvent>) -> anyhow::Resu
             break;
         }
         info!("Niri event: {response}");
-        //should be parsing niri response and converting into sasha event
-        // let _ = tx.send(sashaEvent)
-        // let data: NiriEvent = serde_json::from_str(&response)?;
         let data: NiriEvent = match serde_json::from_str(&response) {
             Ok(data) => data,
             Err(err) => {
@@ -105,15 +121,24 @@ pub async fn read_niri_events(tx: broadcast::Sender<SashaEvent>) -> anyhow::Resu
         };
         match data {
             NiriEvent::WorkspacesChanged { workspaces } => {
-                for workspace in workspaces {
-                    if workspace.is_focused {
-                        info!(
-                            "Focused workspace {} on output {}",
-                            workspace.id,
-                            workspace.output
-                        )
-                    }
-                    //convert to SashaEvent
+                workspace_store.replace_all(workspaces);
+
+                let mut sasha_workspaces = Vec::new();
+
+                for (key, workspace) in &workspace_store.map {
+                    sasha_workspaces.push(events::SashaWorkspace {
+                        id: *key,
+                        idx: workspace.idx,
+                        name: workspace.name.clone(),
+                        monitor: workspace.output.clone(),
+                        is_active: workspace.is_active,
+                        is_focused: workspace.is_focused
+                    });
+                }
+
+                let sevt = SashaEvent::SashaWorkspacesChanged { sasha_workspaces: sasha_workspaces };
+                if let Err(err) = tx.send(sevt) {
+                    tracing::warn!("No Sasha clients connected yet: {err}");
                 }
             }
             NiriEvent::WindowsChanged { windows } => {

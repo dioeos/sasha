@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 #[derive(serde::Serialize, Deserialize, Debug, Clone)]
 pub enum SashaEvent {
     SashaWorkspacesChanged {
-        sasha_workspace: Vec<SashaWorkspace>
+        sasha_workspaces: Vec<SashaWorkspace>
     },
     SashaWindowsChanged {
         sasha_windows: Vec<SashaWindow>
@@ -24,11 +24,12 @@ pub enum SashaEvent {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SashaWorkspace {
-    id: u64,
-    name: Option<String>,
-    monitor: String,
-    is_active: bool,
-    is_focused: bool
+    pub id: u64,
+    pub idx: u64,
+    pub name: Option<String>,
+    pub monitor: String,
+    pub is_active: bool,
+    pub is_focused: bool
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
