@@ -136,6 +136,8 @@ pub async fn read_niri_events(tx: broadcast::Sender<SashaEvent>) -> anyhow::Resu
                     });
                 }
 
+                sasha_workspaces.sort_by_key(|workspace| workspace.idx);
+
                 let sevt = SashaEvent::SashaWorkspacesChanged { sasha_workspaces: sasha_workspaces };
                 if let Err(err) = tx.send(sevt) {
                     tracing::warn!("No Sasha clients connected yet: {err}");
