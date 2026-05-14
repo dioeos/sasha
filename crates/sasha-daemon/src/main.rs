@@ -2,9 +2,10 @@ use tracing::{info, Level};
 use tracing_subscriber::FmtSubscriber;
 use tokio::sync::broadcast;
 
-mod niri;
+mod exec;
 mod events;
 mod client;
+mod niri;
 
 use crate::events::SashaEvent;
 
@@ -22,7 +23,7 @@ async fn main() -> anyhow::Result<()>{
      let niri_tx = tx.clone();
      // tokio::spawn(niri::read_niri_events(tx.clone()));
      tokio::spawn(async move {
-         if let Err(err) = niri::read_niri_events(niri_tx).await {
+         if let Err(err) = exec::read_niri_events(niri_tx).await {
              tracing::error!("Niri event task stopped: {err}");
          }
      });

@@ -5,52 +5,10 @@ use tracing::info;
 
 use std::collections::HashMap;
 
-use serde::Deserialize;
+use crate::niri::{NiriEvent, NiriWorkspace, NiriWindow};
+
 
 use crate::events::{self, SashaEvent};
-
-#[derive(serde::Deserialize, Debug)]
-enum NiriEvent {
-    WorkspacesChanged {
-        workspaces: Vec<NiriWorkspace>
-    },
-    WindowsChanged {
-        windows: Vec<NiriWindow>
-    },
-    WindowFocusChanged {
-        id: Option<u64>
-    },
-    WindowOpenedOrChanged {
-        window: NiriWindow
-    },
-    WorkspaceActivated {
-        id: u64
-    }
-}
-
-#[derive(serde::Deserialize, Debug)]
-struct NiriWorkspace {
-    id: u64,
-    idx: u64,
-    name: Option<String>,
-    output: String,
-    is_urgent: bool,
-    is_active: bool,
-    is_focused: bool,
-    active_window_id: Option<u64>
-}
-
-#[derive(serde::Deserialize, Debug)]
-struct NiriWindow {
-    id: u64,
-    title: String,
-    app_id: String,
-    pid: u64,
-    workspace_id: Option<u64>,
-    is_focused: bool,
-    is_floating: bool,
-    is_urgent: bool
-}
 
 pub struct WindowStore {
     pub map: HashMap<u64, String>
