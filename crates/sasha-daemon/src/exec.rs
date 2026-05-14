@@ -3,48 +3,10 @@ use tokio::sync::broadcast;
 use tokio::net::UnixStream;
 use tracing::info;
 
-use std::collections::HashMap;
-
-use crate::niri::{NiriEvent, NiriWorkspace, NiriWindow};
+use crate::niri::{NiriEvent, WorkspaceStore, WindowStore};
 
 
 use crate::events::{self, SashaEvent};
-
-pub struct WindowStore {
-    pub map: HashMap<u64, String>
-}
-
-impl WindowStore {
-    pub fn new() -> Self {
-        Self { map: HashMap::new() }
-    }
-
-    pub fn get_window_name(&self, key: &u64) -> Option<&String> {
-        self.map.get(key)
-    }
-}
-
-pub struct WorkspaceStore {
-    pub map: HashMap<u64, NiriWorkspace>
-}
-
-impl WorkspaceStore {
-    pub fn new() -> Self {
-        Self { map: HashMap::new() }
-    }
-
-    //used for updating the workspace store for when received NiriEvent::WorkspacesChanged
-    pub fn replace_all(&mut self, workspaces: Vec<NiriWorkspace>) {
-        self.map = workspaces
-            .into_iter()
-            .map(|workspace| (workspace.id, workspace))
-            .collect()
-    }
-
-    pub fn get_workspace_idx(&self, key: u64) -> Option<&u64> {
-        self.map.get(&key).map(|workspace| &workspace.idx)
-    }
-}
 
 pub async fn read_niri_events(tx: broadcast::Sender<SashaEvent>) -> anyhow::Result<()> {
     let mut window_store = WindowStore::new();
@@ -154,7 +116,7 @@ pub async fn read_niri_events(tx: broadcast::Sender<SashaEvent>) -> anyhow::Resu
                 }
             }
             NiriEvent::WorkspaceActivated { id } => {
-                if let Some(idx) = workspace_store.get_workspace_idx(id) {
+                if let Some(idx) = workspace_store.get_workspace_idx(&id) {
                     let sevt = SashaEvent::SashaWorkspaceActivated { idx: *idx };
                     if let Err(err) = tx.send(sevt) {
                         tracing::warn!("No Sasha clients connected yet: {err}");
