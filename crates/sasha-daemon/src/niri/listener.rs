@@ -26,6 +26,24 @@ impl NiriListener {
     }
 
     pub async fn run(mut self, broadcaster: Sender::<SashaEvent>) -> anyhow::Result<()> {
+        let mut reader = self.connect_to_niri().await?;
+
+        loop {
+            let mut response = String::new();
+            let bytes_read = reader.read_line(&mut response).await?;
+
+            if bytes_read == 0 {
+                // info!("Niri event stream closed.");
+                break;
+            }
+
+            let event: NiriEvent = self.read_niri_event(&response)?;
+
+        }
+        Ok(())
+    }
+
+    async fn connect_to_niri(&self) -> anyhow::Result<BufReader<UnixStream>> {
         let stream = UnixStream::connect(&self.niri_socket_path).await?;
         let mut reader = BufReader::new(stream);
 
@@ -36,29 +54,41 @@ impl NiriListener {
 
         reader.get_mut().flush().await?;
 
-        loop {
-            let mut response = String::new();
+        Ok(reader)
+    }
+
+    fn read_niri_event(&self, response: &str) -> anyhow::Result<NiriEvent> {
+        match serde_json::from_str(response) {
+            Ok(data) => Ok(data),
+            Err(err) => Err(err.into()),
+        }
+    }
+
+    fn handle_niri_event(&mut self, event: NiriEvent) {
+        match event {
+            NiriEvent::WorkspacesChanged { workspaces } => {
+
+            }
+
+            NiriEvent::WindowsChanged { windows } => {
+
+            }
+
+            NiriEvent::WindowFocusChanged { id } => {
+
+            }
+
+            NiriEvent::WorkspaceActivated { id } => {
+
+            }
+
+            NiriEvent::WindowOpenedOrChanged { window } => {
+
+            }
 
         }
     }
 
-    async fn connect_to_niri(&self) -> anyhow::Result<BufReader<UnixStream>> {
-        let stream = UnixStream:;conne 
-    }
-
-    fn read_stream_bytes(&mut response) -> u64 {
-
-    }
-
-    fn read_niri_event() {}
-
-    fn handle_niri_event() {}
-
-    
-
-    // async fn handle_event(&mut self, niri_event: NiriEvent) {
-    //     let sasha_event = SashaEvent::from(niri_event);
-    // }
 
     // fn handle_workspaces_changed(&mut self, workspaces: Vec<NiriWorkspace>) {
     //     self.workspace_store.replace_all(workspaces);
