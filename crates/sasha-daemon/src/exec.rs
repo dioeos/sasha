@@ -3,7 +3,7 @@ use tokio::sync::broadcast;
 use tokio::net::UnixStream;
 use tracing::info;
 
-use crate::niri::{NiriEvent, WorkspaceStore, WindowStore};
+use crate::niri::{NiriEvent};
 
 
 use crate::events::{self, SashaEvent};

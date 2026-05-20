@@ -1,5 +1,4 @@
 /* Models to mirror the Niri IPC structures */
-
 #[derive(serde::Deserialize, Debug)]
 pub enum NiriEvent {
     WorkspacesChanged {

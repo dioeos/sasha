@@ -1,22 +1,5 @@
-/* Stores to store Niri state */
-
-use std::{collections::HashMap, hash::Hash};
-
-use super::models::{NiriWorkspace};
-
-pub struct WindowStore {
-    pub map: HashMap<u64, String>
-}
-
-impl WindowStore {
-    pub fn new() -> Self {
-        Self { map: HashMap::new() }
-    }
-
-    pub fn get_window_name(&self, key: &u64) -> Option<&String> {
-        self.map.get(key)
-    }
-}
+use std::{collections::HashMap};
+use crate::niri::{NiriWorkspace};
 
 pub struct WorkspaceStore {
     pub map: HashMap<u64, NiriWorkspace>

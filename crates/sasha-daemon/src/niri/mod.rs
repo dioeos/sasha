@@ -1,5 +1,5 @@
 pub mod models;
-pub mod stores;
+pub mod listener;
 
 pub use models::{NiriEvent, NiriWorkspace, NiriWindow};
-pub use stores::{WindowStore, WorkspaceStore};
+pub use listener::{NiriListener};

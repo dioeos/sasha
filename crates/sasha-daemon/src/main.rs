@@ -3,9 +3,13 @@ use tracing_subscriber::FmtSubscriber;
 use tokio::sync::broadcast;
 
 mod exec;
-mod events;
 mod client;
+
+mod daemon;
+
 mod niri;
+mod stores;
+mod events;
 
 use crate::events::SashaEvent;
 
@@ -29,6 +33,9 @@ async fn main() -> anyhow::Result<()>{
      });
 
      client::accept_sasha_clients(tx).await?;
+
+     let sasha_daemon = daemon::Daemon::new();
+     sasha_daemon.run().await?;
 
     Ok(())
 }
