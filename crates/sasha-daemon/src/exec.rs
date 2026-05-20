@@ -9,22 +9,6 @@ use crate::niri::{NiriEvent};
 use crate::events::{self, SashaEvent};
 
 pub async fn read_niri_events(tx: broadcast::Sender<SashaEvent>) -> anyhow::Result<()> {
-    let mut window_store = WindowStore::new();
-    let mut workspace_store = WorkspaceStore::new();
-
-    info!("Connecting to Niri event stream...");
-    let niri_socket_path = std::env::var("NIRI_SOCKET").expect("NIRI_SOCKET is not set");
-    let stream = UnixStream::connect(niri_socket_path).await?;
-    let mut reader =BufReader::new(stream);
-
-    info!("Subscribing to niri event stream...");
-
-    reader
-        .get_mut()
-        .write_all(b"\"EventStream\"\n")
-        .await?;
-
-    reader.get_mut().flush().await?;
 
     loop {
         let mut response = String::new();

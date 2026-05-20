@@ -29,11 +29,6 @@ pub enum SashaEvent {
 // WindowsChanged
 // WindowOpenedOrChanged
 //
-impl From<NiriEvent::WorkspacesChanged> for SashaEvent::SashaWorkspacesChanged {
-    fn from(workspaces_evt: NiriEvent::WorkspacesChanged) -> Self {
-
-    }
-}
 
 //non pure conversions: -> Require querying state
 // WindowFocusChanged
@@ -81,13 +76,13 @@ pub id: u64,
     pub is_focused: bool
 }
 
-impl From<NiriWorkspace> for SashaWorkspace {
-    fn from(workspace: NiriWorkspace) -> Self {
+impl From<&NiriWorkspace> for SashaWorkspace {
+    fn from(workspace: &NiriWorkspace) -> Self {
         Self {
             id: workspace.id,
             idx: workspace.idx,
-            name: workspace.name,
-            monitor: workspace.output,
+            name: workspace.name.clone(),
+            monitor: workspace.output.clone(),
             is_active: workspace.is_active,
             is_focused: workspace.is_focused
         }

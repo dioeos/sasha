@@ -23,17 +23,17 @@ impl Daemon {
             niri_listener: NiriListener::new(
                                window_store,
                                workspace_store,
-                               niri_socket_path
+                               niri_socket_path,
+                               tx.clone()
                            ),
             tx,
         }
     }
 
     pub async fn run(self) -> anyhow::Result<()> {
-        let broadcaster_copy = self.tx.clone();
         //spawns tokio niri event listener task
         tokio::spawn(async move {
-            if let Err(err) = self.niri_listener.run(broadcaster_copy).await {
+            if let Err(err) = self.niri_listener.run().await {
                 tracing::error!("Niri event task stopped: {err}");
             }
         });
