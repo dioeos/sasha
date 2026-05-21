@@ -1,5 +1,6 @@
 use tokio::sync::broadcast;
 
+use crate::client_handler::ClientHandler;
 use crate::stores::{WindowStore, WorkspaceStore};
 use crate::niri::{NiriListener};
 use crate::events::{SashaEvent};
@@ -7,6 +8,7 @@ use crate::events::{SashaEvent};
 pub struct Daemon {
     tx: broadcast::Sender<SashaEvent>,
     niri_listener: NiriListener,
+    client_handler: ClientHandler
 }
 
 impl Daemon {
@@ -21,11 +23,14 @@ impl Daemon {
 
         Self {
             niri_listener: NiriListener::new(
-                               window_store,
-                               workspace_store,
-                               niri_socket_path,
-                               tx.clone()
-                           ),
+                window_store,
+                workspace_store,
+                niri_socket_path,
+                tx.clone()
+            ),
+            client_handler: ClientHandler::new(
+                tx.clone()
+            ),
             tx,
         }
     }
