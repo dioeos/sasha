@@ -3,8 +3,7 @@ use tokio::sync::broadcast::{Sender};
 use tokio::net::UnixStream;
 use tokio::io::{AsyncWriteExt, AsyncBufReadExt, BufReader, BufWriter};
 
-use crate::events::sasha_event::SashaWorkspace;
-use crate::events::{SashaEvent};
+use crate::events::{SashaEvent, SashaWindow, SashaWorkspace};
 use crate::stores::{WindowStore, WorkspaceStore};
 
 use super::models::{NiriEvent, NiriWorkspace, NiriWindow};
@@ -28,7 +27,7 @@ impl NiriListener {
         }
     }
 
-    pub async fn run(mut self, broadcaster: Sender::<SashaEvent>) -> anyhow::Result<()> {
+    pub async fn run(mut self) -> anyhow::Result<()> {
         let mut reader = self.connect_to_niri().await?;
 
         loop {
@@ -85,6 +84,60 @@ impl NiriListener {
         SashaEvent::SashaWorkspacesChanged { sasha_workspaces }
     }
 
+    fn handle_windows_changed(&mut self, windows: Vec<NiriWindow>) -> SashaEvent {
+        let mut sasha_windows: Vec<SashaWindow> = windows
+            .iter()
+            .map(|window| SashaWindow::from(window))
+            .collect();
+        sasha_windows.sort_by_key(|window| window.id);
+
+        self.window_store.replace_all(windows);
+
+        SashaEvent::SashaWindowsChanged { sasha_windows }
+    }
+
+    fn handle_window_focus_changed(&self, id: Option<u64>) -> SashaEvent {
+        match id {
+            Some(id) => {
+                let window_name = self.window_store
+                    .get_window_name(&id)
+                    .unwrap_or("Unknown");
+                
+
+                SashaEvent::SashaWindowFocusedChanged {
+                    id: Some(id),
+                    window_name: window_name.to_string()
+                }
+            }
+            None => {
+                SashaEvent::SashaWindowFocusedChanged {
+                    id: None,
+                    window_name: "None".to_string()
+                }
+            }
+        }
+    }
+
+    fn handle_workspace_activated(&self, id: u64) -> Option<SashaEvent> {
+        self.workspace_store
+            .get_workspace_idx(&id)
+            .map(|idx| {
+                SashaEvent::SashaWorkspaceActivated { idx: *idx }
+            })
+    }
+
+    fn handle_window_opened_or_changed(&mut self, window: NiriWindow) -> SashaEvent {
+        let name_copy = window.title.clone();
+        let id_copy = window.id.clone();
+
+        self.window_store.map.insert(window.id, window);
+
+        SashaEvent::SashaWindowOpenedOrChanged {
+            id: id_copy,
+            window_name: name_copy
+        }
+    }
+
     fn convert_niri_event(&mut self, event: NiriEvent) -> Option<SashaEvent> {
         match event {
             NiriEvent::WorkspacesChanged { workspaces } => {
@@ -92,25 +145,20 @@ impl NiriListener {
             }
 
             NiriEvent::WindowsChanged { windows } => {
-                //dirty
-
+                Some(self.handle_windows_changed(windows))
             }
 
             NiriEvent::WindowFocusChanged { id } => {
-                //pure
-
+                Some(self.handle_window_focus_changed(id))
             }
 
             NiriEvent::WorkspaceActivated { id } => {
-                //pure
-
+                self.handle_workspace_activated(id)
             }
 
             NiriEvent::WindowOpenedOrChanged { window } => {
-                //pure
-
+                Some(self.handle_window_opened_or_changed(window))
             }
-
         }
     }
 }
