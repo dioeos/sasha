@@ -23,11 +23,13 @@ impl ClientHandler {
         loop {
             let (stream, addr) = listener.accept().await?;
             let rx = self.broadcaster.subscribe();
-            tokio::spawn(self.handle_client(stream, rx));
+            tokio::spawn(async move {
+                ClientHandler::handle_client(stream, rx)
+            });
         }
     }
 
-    async fn handle_client(&self, stream: UnixStream, mut rx: broadcast::Receiver<SashaEvent>) -> anyhow::Result<()> {
+    async fn handle_client(stream: UnixStream, mut rx: broadcast::Receiver<SashaEvent>) -> anyhow::Result<()> {
         let mut writer = BufWriter::new(stream);
 
         loop {
@@ -37,6 +39,5 @@ impl ClientHandler {
             writer.write_all(b"\n").await?;
             writer.flush().await?;
         }
-
     }
 }

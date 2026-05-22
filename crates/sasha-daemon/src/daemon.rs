@@ -43,6 +43,7 @@ impl Daemon {
             }
         });
         //begins listening for client connections
+        self.client_handler.run().await?;
         Ok(())
     }
 }

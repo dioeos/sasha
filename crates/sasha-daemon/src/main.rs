@@ -1,16 +1,12 @@
 use tracing::{info, Level};
 use tracing_subscriber::FmtSubscriber;
-use tokio::sync::broadcast;
-
-mod client;
 
 mod daemon;
+mod client_handler;
 
 mod niri;
 mod stores;
 mod events;
-
-use crate::events::SashaEvent;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()>{
@@ -22,8 +18,8 @@ async fn main() -> anyhow::Result<()>{
 
      info!("Starting sasha daemon...");
 
-     let (tx, _) = broadcast::channel::<SashaEvent>(16);
-     let niri_tx = tx.clone();
+     // let (tx, _) = broadcast::channel::<SashaEvent>(16);
+     // let niri_tx = tx.clone();
      // tokio::spawn(niri::read_niri_events(tx.clone()));
      // tokio::spawn(async move {
      //     if let Err(err) = exec::read_niri_events(niri_tx).await {
@@ -31,7 +27,7 @@ async fn main() -> anyhow::Result<()>{
      //     }
      // });
 
-     client::accept_sasha_clients(tx).await?;
+     // client::accept_sasha_clients(tx).await?;
 
      let sasha_daemon = daemon::Daemon::new();
      sasha_daemon.run().await?;

@@ -23,49 +23,6 @@ pub enum SashaEvent {
     }
 }
 
-
-//pure conversions: -> Contain enough data already to convert to SashaEvent
-// WorkspacesChanged
-// WindowsChanged
-// WindowOpenedOrChanged
-//
-
-//non pure conversions: -> Require querying state
-// WindowFocusChanged
-// WorkspaceActivated
-
-// impl From<NiriEvent> for SashaEvent {
-//     fn from(event: NiriEvent) -> Self {
-//         match event {
-//             NiriEvent::WorkspacesChanged { workspaces } => {
-//                 SashaEvent::SashaWorkspacesChanged {
-//                     sasha_workspaces: workspaces
-//                         .into_iter()
-//                         .map(|workspace| SashaWorkspace::from(workspace))
-//                         .collect()
-//                 }
-//             }
-//             NiriEvent::WindowsChanged { windows } => {
-//                 SashaEvent::SashaWindowsChanged {
-//                     sasha_windows: windows
-//                         .into_iter()
-//                         .map(|window| SashaWindow::from(window))
-//                         .collect()
-//                 }
-//             }
-//             NiriEvent::WindowFocusChanged { id } => {
-//                 match id {
-//                     Some(id) => {
-//                         if let Some(name) = window
-//                     }
-//                 }
-//
-//             }
-//
-//         }
-//     }
-// }
-
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SashaWorkspace {
 pub id: u64,
@@ -91,19 +48,19 @@ impl From<&NiriWorkspace> for SashaWorkspace {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SashaWindow {
-    id: u64,
-    title: String,
+    pub id: u64,
+    pub title: String,
     app_id: String,
     workspace_id: Option<u64>,
     is_focused: bool
 }
 
-impl From<NiriWindow> for SashaWindow {
-    fn from(window: NiriWindow) -> Self {
+impl From<&NiriWindow> for SashaWindow {
+    fn from(window: &NiriWindow) -> Self {
         Self {
             id: window.id,
-            title: window.title,
-            app_id: window.app_id,
+            title: window.title.clone(),
+            app_id: window.app_id.clone(),
             workspace_id: window.workspace_id,
             is_focused: window.is_focused
         }
