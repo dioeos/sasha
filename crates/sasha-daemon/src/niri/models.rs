@@ -2,7 +2,7 @@
 use std::fmt;
 
 #[derive(serde::Deserialize, Debug)]
-#[serde(untagged)]
+// #[serde(untagged)]
 pub enum NiriEvent {
     Ok (String),
 

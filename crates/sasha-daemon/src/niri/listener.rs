@@ -39,6 +39,8 @@ impl NiriListener {
                 break;
             }
 
+            tracing::info!("RAW NIRI RESPONSE: {}", response);
+
             // let event: NiriEvent = self.read_niri_event(&response)?;
             match self.read_niri_event(&response) {
                 Ok(event) => {
@@ -68,7 +70,10 @@ impl NiriListener {
 
     fn read_niri_event(&self, response: &str) -> anyhow::Result<NiriEvent> {
         match serde_json::from_str(response) {
-            Ok(data) => Ok(data),
+            Ok(data) => {
+                tracing::info!("Serialized data: {}", data);
+                Ok(data)
+            }
             Err(err) => Err(err.into()),
         }
     }
@@ -172,6 +177,10 @@ impl NiriListener {
             }
 
             NiriEvent::WindowFocusChanged { id } => {
+                match id {
+                    Some(id) => { tracing::info!("ID EXISTS: {}", id)}
+                    None => { tracing::info!("ID DOES NOT EXIST FOR FOCUS")}
+                }
                 Some(self.handle_window_focus_changed(id))
             }
 
