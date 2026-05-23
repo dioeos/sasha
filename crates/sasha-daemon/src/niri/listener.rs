@@ -2,7 +2,6 @@ use tokio::sync::broadcast;
 use tokio::sync::broadcast::{Sender};
 use tokio::net::UnixStream;
 use tokio::io::{AsyncWriteExt, AsyncBufReadExt, BufReader, BufWriter};
-use tracing::info;
 
 use crate::events::{SashaEvent, SashaWindow, SashaWorkspace};
 use crate::stores::{WindowStore, WorkspaceStore};
@@ -40,8 +39,15 @@ impl NiriListener {
                 break;
             }
 
-            let event: NiriEvent = self.read_niri_event(&response)?;
-            self.handle_niri_event(event);
+            // let event: NiriEvent = self.read_niri_event(&response)?;
+            match self.read_niri_event(&response) {
+                Ok(event) => {
+                    self.handle_niri_event(event);
+                }
+                Err(err) => {
+                    tracing::warn!("Ignoring unaccounted NiriEvent variant: {err}")
+                }
+            }
         }
         Ok(())
     }
@@ -68,8 +74,17 @@ impl NiriListener {
     }
 
     fn handle_niri_event(&mut self, event: NiriEvent) {
+        tracing::info!("NIRI EVENT IN HANDLER: {event}");
         if let Some(sasha_event) = self.convert_niri_event(event) {
-            self.broadcaster.send(sasha_event);
+            tracing::info!("Broadcasting sasha event");
+            match self.broadcaster.send(sasha_event) {
+                Ok(count) => {
+                    tracing::info!("Broadcasted sasha event to {count} clients");
+                }
+                Err(err) => {
+                    tracing::warn!("No active sasha clients: {err}");
+                }
+            }
         }
     }
 

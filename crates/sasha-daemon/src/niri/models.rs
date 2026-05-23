@@ -1,5 +1,8 @@
 /* Models to mirror the Niri IPC structures */
+use std::fmt;
+
 #[derive(serde::Deserialize, Debug)]
+#[serde(untagged)]
 pub enum NiriEvent {
     Ok (String),
 
@@ -17,8 +20,61 @@ pub enum NiriEvent {
     },
     WorkspaceActivated {
         id: u64
+    },
+}
+
+impl fmt::Display for NiriEvent {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            NiriEvent::Ok(msg) => { 
+                write!(
+                    f,
+                    "Ok: ({})",
+                    msg
+                )
+            }
+            NiriEvent::WorkspacesChanged { workspaces } => {
+                write!(
+                    f,
+                    "WorkspacesChanged: ({} workspaces)",
+                    workspaces.len()
+                )
+            }
+            NiriEvent::WindowsChanged { windows } => {
+                write!(
+                    f,
+                    "WindowsChanged: ({} windows)",
+                    windows.len()
+                )
+            }
+            NiriEvent::WindowFocusChanged { id } => {
+                match id {
+                    Some(id) => {
+                        write!(f, "WindowFocusChanged: {}", id)
+                    }
+                    None => {
+                        write!(f, "WindowFocusChanged: None")
+                    }
+                }
+            }
+            NiriEvent::WindowOpenedOrChanged { window } => {
+                write!(
+                    f,
+                    "WindowOpenedOrChanged: {}",
+                    window
+                )
+            }
+            NiriEvent::WorkspaceActivated { id } => {
+                write!(
+                    f,
+                    "WorkspaceActivated: {}",
+                    id
+                )
+            }
+        }
     }
 }
+
 
 #[derive(serde::Deserialize, Debug)]
 pub struct NiriWorkspace {
@@ -42,4 +98,17 @@ pub struct NiriWindow {
     pub is_focused: bool,
     is_floating: bool,
     is_urgent: bool
+}
+
+impl fmt::Display for NiriWindow {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "NiriWindow: [{}], title: {}, is_focused: {}",
+            self.id,
+            self.title,
+            self.is_focused
+        )
+
+    }
 }
