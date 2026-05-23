@@ -4,6 +4,9 @@ use crate::niri::{NiriEvent, NiriWorkspace, NiriWindow};
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub enum SashaEvent {
+    Ok {
+        msg: String
+    },
     SashaWorkspacesChanged {
         sasha_workspaces: Vec<SashaWorkspace>
     },

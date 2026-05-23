@@ -2,6 +2,7 @@ use tokio::sync::broadcast;
 use tokio::sync::broadcast::{Sender};
 use tokio::net::UnixStream;
 use tokio::io::{AsyncWriteExt, AsyncBufReadExt, BufReader, BufWriter};
+use tracing::info;
 
 use crate::events::{SashaEvent, SashaWindow, SashaWorkspace};
 use crate::stores::{WindowStore, WorkspaceStore};
@@ -138,8 +139,15 @@ impl NiriListener {
         }
     }
 
+    fn handle_ok_event(&self, msg: String) -> SashaEvent {
+        SashaEvent::Ok { msg: msg }
+    }
+
     fn convert_niri_event(&mut self, event: NiriEvent) -> Option<SashaEvent> {
         match event {
+            NiriEvent::Ok ( msg ) => {
+                Some(self.handle_ok_event(msg))
+            }
             NiriEvent::WorkspacesChanged { workspaces } => {
                 Some(self.handle_workspaces_changed(workspaces))
             }
