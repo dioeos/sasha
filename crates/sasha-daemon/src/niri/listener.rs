@@ -140,11 +140,14 @@ impl NiriListener {
     }
 
     fn handle_workspace_activated(&self, id: u64) -> Option<SashaEvent> {
-        self.workspace_store
-            .get_workspace_idx(&id)
-            .map(|idx| {
-                SashaEvent::SashaWorkspaceActivated { idx: *idx }
-            })
+        let workspace = self.workspace_store.map.get(&id);
+        match workspace {
+            Some(workspace) => {
+                let s_workspace = SashaWorkspace::from(workspace);
+                Some(SashaEvent::SashaWorkspaceActivated { sasha_workspace: s_workspace })
+            }
+            None => None
+        }
     }
 
     fn handle_window_opened_or_changed(&mut self, window: NiriWindow) -> SashaEvent {
