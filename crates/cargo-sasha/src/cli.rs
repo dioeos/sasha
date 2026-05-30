@@ -24,6 +24,12 @@ pub enum Command {
     Logs {
         #[command(subcommand)]
         target: LogsTarget
+    },
+    MarkWindow {
+        slot: u8
+    },
+    FocusWindow {
+        slot: u8
     }
 }
 
@@ -71,6 +77,12 @@ pub fn determine_script_for(cmd: Command) -> &'static str {
         }
         Command::Logs { target: LogsTarget::Service } => {
             "./scripts/utils/start_live_sasha_logs.sh"
+        }
+        Command::MarkWindow { slot } => {
+            "./scripts/test.sh"
+        }
+        Command::FocusWindow { slot } => {
+            "./scripts/test.sh"
         }
     }
 }
