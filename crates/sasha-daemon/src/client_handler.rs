@@ -16,7 +16,7 @@ impl ClientHandler {
 
     pub async fn run(self) -> anyhow::Result<()> {
         let runtime_dir = std::env::var("XDG_RUNTIME_DIR").expect("XDG_RUNTIME_DIR is not set");
-        let socket_path = format!("{runtime_dir}/sasha.sock");
+        let socket_path = format!("{runtime_dir}/sasha-events.sock");
         fs::remove_file(&socket_path);
         let listener = UnixListener::bind(&socket_path)?;
 
