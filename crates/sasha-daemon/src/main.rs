@@ -1,5 +1,4 @@
-use tracing::{Level};
-use tracing_subscriber::FmtSubscriber;
+use tracing::{span, Level};
 
 mod daemon;
 mod client_handler;
@@ -11,17 +10,14 @@ mod events;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()>{
-     // let subscriber = FmtSubscriber::builder()
-     //     .with_max_level(Level::TRACE)
-     //     .finish();
-     // tracing::subscriber::set_global_default(subscriber)
-     //     .expect("Failed to set tracing subscriber!");
+    logger::init_logger().expect("Failed to setup application logger");
 
+    let main_spain = span!(Level::INFO, "[MAIN]");
+    let _guard = main_spain.enter();
 
      // let _logger_guard = logger::init_logger()
      //     .expect("Failed to setup application logger");
-     logger::init_logger().expect("Failed to setup application logger");
-
+    
      let sasha_daemon = daemon::Daemon::new();
      sasha_daemon.run().await?;
 
