@@ -1,4 +1,4 @@
-use tracing::{span, Level, info, error, debug};
+use tracing::{span, Level, info, error, debug, trace};
 
 use tokio::sync::broadcast;
 
@@ -26,7 +26,7 @@ impl Daemon {
         let niri_socket_path: String = std::env::var("NIRI_SOCKET")
             .expect("NIRI_SOCKET is not set");
 
-        info!("Loaded necessary dependencies in daemon");
+        debug!("Loaded necessary dependencies to create daemon");
 
         Self {
             niri_listener: NiriListener::new(
@@ -46,8 +46,8 @@ impl Daemon {
         let daemon_run_span = span!(Level::INFO, "[DAEMON]::run()");
         let _guard = daemon_run_span.enter();
 
-        //spawns tokio niri event listener task
-        info!("Using tokio to spawn niri event listener async task");
+        info!("Starting daemon...");
+        debug!("Preparing to use tokio to spawn niri event listener async task");
 
         tokio::spawn(async move {
             if let Err(err) = self.niri_listener.run().await {
@@ -55,7 +55,9 @@ impl Daemon {
             }
         });
 
-        debug!("Created task!");
+        debug!("Preparing to run client handler for daemon");
+        info!("Starting client handler for daemon...");
+
         //begins listening for client connections
         self.client_handler.run().await?;
         Ok(())

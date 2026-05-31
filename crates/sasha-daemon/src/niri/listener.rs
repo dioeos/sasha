@@ -3,6 +3,8 @@ use tokio::sync::broadcast::{Sender};
 use tokio::net::UnixStream;
 use tokio::io::{AsyncWriteExt, AsyncBufReadExt, BufReader, BufWriter};
 
+use tracing::{span, Level, info, error, debug, trace, warn};
+
 use crate::events::{SashaEvent, SashaWindow, SashaWorkspace};
 use crate::stores::{WindowStore, WorkspaceStore};
 
@@ -19,6 +21,9 @@ pub struct NiriListener {
 impl NiriListener {
 
     pub fn new(ww_store: WindowStore, ws_store: WorkspaceStore, niri_socket_path: String, tx: broadcast::Sender<SashaEvent>) -> Self {
+        let listener_span = span!(Level::INFO, "[LISTENER]::new()");
+        let _guard = listener_span.enter();
+
         Self {
             window_store: ww_store,
             workspace_store: ws_store,
@@ -28,6 +33,9 @@ impl NiriListener {
     }
 
     pub async fn run(mut self) -> anyhow::Result<()> {
+        let lister_run_span = span!(Level::INFO, "[LISTENER]::run()");
+        let _guard = lister_run_span.enter();
+
         let mut reader = self.connect_to_niri().await?;
 
         loop {
@@ -35,11 +43,11 @@ impl NiriListener {
             let bytes_read = reader.read_line(&mut response).await?;
 
             if bytes_read == 0 {
-                // info!("Niri event stream closed.");
+                warn!("0 bytes were read. The niri event stream closed");
                 break;
             }
 
-            tracing::info!("RAW NIRI RESPONSE: {}", response);
+            debug!("Raw niri response from EventStream: {}", response);
 
             // let event: NiriEvent = self.read_niri_event(&response)?;
             match self.read_niri_event(&response) {
@@ -47,7 +55,7 @@ impl NiriListener {
                     self.handle_niri_event(event);
                 }
                 Err(err) => {
-                    tracing::warn!("Ignoring unaccounted NiriEvent variant: {err}")
+                    warn!("Ignoring unaccounted NiriEvent variant: {err}");
                 }
             }
         }
@@ -71,7 +79,7 @@ impl NiriListener {
     fn read_niri_event(&self, response: &str) -> anyhow::Result<NiriEvent> {
         match serde_json::from_str(response) {
             Ok(data) => {
-                tracing::info!("Serialized data: {}", data);
+                debug!("Serialized niri event data: {}", data);
                 Ok(data)
             }
             Err(err) => Err(err.into()),
@@ -79,12 +87,12 @@ impl NiriListener {
     }
 
     fn handle_niri_event(&mut self, event: NiriEvent) {
-        tracing::info!("NIRI EVENT IN HANDLER: {event}");
+        info!("Handling NiriEvent: {}", event);
+
         if let Some(sasha_event) = self.convert_niri_event(event) {
-            tracing::info!("Broadcasting sasha event");
             match self.broadcaster.send(sasha_event) {
                 Ok(count) => {
-                    tracing::info!("Broadcasted sasha event to {count} clients");
+                    tracing::debug!("Broadcasted sasha event to {count} clients");
                 }
                 Err(err) => {
                     tracing::warn!("No active sasha clients: {err}");
@@ -180,10 +188,6 @@ impl NiriListener {
             }
 
             NiriEvent::WindowFocusChanged { id } => {
-                match id {
-                    Some(id) => { tracing::info!("ID EXISTS: {}", id)}
-                    None => { tracing::info!("ID DOES NOT EXIST FOR FOCUS")}
-                }
                 Some(self.handle_window_focus_changed(id))
             }
 
