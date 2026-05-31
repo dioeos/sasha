@@ -36,7 +36,7 @@
 
 use std::io::{stdout};
 
-use tracing_subscriber::{Layer};
+use tracing_subscriber::filter::{EnvFilter};
 use tracing_subscriber::registry::{Registry};
 use tracing_subscriber::fmt::{self, format, time};
 use tracing_subscriber::prelude::*;
@@ -48,8 +48,11 @@ pub fn init_logger() -> anyhow::Result<()> {
 
     // let file_appender = RollingFileAppender::new(Rotation::DAILY, "/some/directory", "sasha.log");
 
+    let filter = EnvFilter::try_from_default_env()
+        .unwrap_or_else(|_| EnvFilter::new("info"));
+
     let fmt = format().with_timer(time::Uptime::default());
-    let journal_layer = fmt::layer::<tracing_subscriber::Registry>()
+    let journal_layer = fmt::layer()
         .event_format(fmt)
         .with_ansi(true)
         .with_writer(stdout)
@@ -58,6 +61,7 @@ pub fn init_logger() -> anyhow::Result<()> {
         
 
     let subscriber = Registry::default()
+        .with(filter)
         .with(journal_layer);
 
     tracing::subscriber::set_global_default(subscriber).unwrap();

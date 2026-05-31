@@ -1,4 +1,4 @@
-use tracing::{span, Level, info, error};
+use tracing::{span, Level, info, error, debug};
 
 use tokio::sync::broadcast;
 
@@ -54,6 +54,8 @@ impl Daemon {
                 error!("Niri event task stopped: {err}");
             }
         });
+
+        debug!("Created task!");
         //begins listening for client connections
         self.client_handler.run().await?;
         Ok(())
