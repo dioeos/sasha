@@ -25,7 +25,7 @@ impl ClientHandler {
             let rx = self.broadcaster.subscribe();
             tokio::spawn(async move {
                 if let Err(err) = ClientHandler::handle_client(stream, rx).await {
-                    tracing::warn!("Sasha client disconnected: {err}");
+                    // tracing::warn!("Sasha client disconnected: {err}");
                 }
             });
         }
@@ -37,11 +37,11 @@ impl ClientHandler {
         loop {
             let event = rx.recv().await?;
             let json = serde_json::to_string(&event)?;
-            tracing::info!("Writing JSON to client: {json}");
+            // tracing::info!("Writing JSON to client: {json}");
             writer.write_all(json.as_bytes()).await?;
             writer.write_all(b"\n").await?;
             writer.flush().await?;
-            tracing::info!("Wrote to Sasha Client!");
+            // tracing::info!("Wrote to Sasha Client!");
         }
     }
 }
