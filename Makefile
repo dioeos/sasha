@@ -5,7 +5,7 @@ cargo-sasha:
 
 develop:
 	cargo sasha update daemon && \
-	cargo sasha logs service
+	journalctl --user -u sasha.service -n 100 -f
 
 service-env:
 	systemctl --user start sasha.service && \
