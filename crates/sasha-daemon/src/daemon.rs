@@ -1,4 +1,4 @@
-use tracing::{span, Level, info, error, debug, trace};
+use tracing::{span, Level, info, error, debug};
 
 use tokio::sync::broadcast;
 
@@ -8,7 +8,6 @@ use crate::niri::{NiriListener};
 use crate::events::{SashaEvent};
 
 pub struct Daemon {
-    tx: broadcast::Sender<SashaEvent>,
     niri_listener: NiriListener,
     client_handler: ClientHandler
 }
@@ -36,9 +35,8 @@ impl Daemon {
                 tx.clone()
             ),
             client_handler: ClientHandler::new(
-                tx.clone()
+                tx
             ),
-            tx,
         }
     }
 

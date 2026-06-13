@@ -2,7 +2,6 @@
 use std::fmt;
 
 #[derive(serde::Deserialize, Debug)]
-// #[serde(untagged)]
 pub enum NiriEvent {
     Ok (String),
 
@@ -77,6 +76,7 @@ impl fmt::Display for NiriEvent {
 
 
 #[derive(serde::Deserialize, Debug)]
+#[allow(dead_code)]
 pub struct NiriWorkspace {
     pub id: u64,
     pub idx: u64,
@@ -89,6 +89,7 @@ pub struct NiriWorkspace {
 }
 
 #[derive(serde::Deserialize, Debug)]
+#[allow(dead_code)]
 pub struct NiriWindow {
     pub id: u64,
     pub title: String,
