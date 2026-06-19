@@ -33,7 +33,7 @@ echo "Restarting Sasha Service..."
 systemctl --user restart sasha.service
 '''
 
-[tasks.dev-flow]
+[tasks.daemon-dev-flow]
 dependencies = [
   "import-environment",
   "build-daemon",
@@ -45,6 +45,36 @@ dependencies = [
 # ===========
 # ===========
 
+[tasks.build-cli]
+script = '''
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "Building Sasha CLI..."
+cargo build -p cargo-sasha
+'''
+
+[tasks.install-cli]
+dependencies = [ "build-cli" ]
+script = '''
+#!/usr/bin/env bash
+set -euo pipefail
+
+cargo install \
+  --path crates/cargo-sasha \
+  --force
+'''
+
+[tasks.cli-dev-flow]
+dependencies = [
+  "build-cli",
+  "install-cli"
+]
+
+# ===========
+# ===========
+# ===========
+# ===========
 [tasks.live-logs]
 script = '''
 #!/usr/bin/env bash
