@@ -1,56 +1,7 @@
-use clap::{Parser, Subcommand};
+use tokio::{io::{AsyncWriteExt, BufWriter}, net::UnixStream};
 
-#[derive(Parser)]
-#[command(bin_name = "cargo sasha")]
-pub struct SashaCargoParser {
-    #[command(subcommand)]
-    pub command: Command,
-}
+use crate::command::{RequestPattern};
 
-#[derive(Subcommand)]
-pub enum Command {
-    Update {
-        #[command(subcommand)]
-        target: UpdateTarget
-    },
-    Start {
-        #[command(subcommand)]
-        target: StartTarget
-    },
-    Stop {
-        #[command(subcommand)]
-        target: StopTarget
-    },
-    Logs {
-        #[command(subcommand)]
-        target: LogsTarget
-    },
-    MarkWindow {
-        slot: u8
-    },
-    FocusWindow {
-        slot: u8
-    }
-}
-
-#[derive(Subcommand)]
-pub enum UpdateTarget {
-    Daemon,
-    Service,
-}
-
-#[derive(Subcommand)]
-pub enum StopTarget {
-    Service
-}
-#[derive(Subcommand)]
-pub enum StartTarget {
-    Service
-}
-#[derive(Subcommand)]
-pub enum LogsTarget {
-    Service
-}
 
 pub fn cargo_args() -> Vec<String> {
     let mut raw_args: Vec<String> = std::env::args().collect();
@@ -61,28 +12,30 @@ pub fn cargo_args() -> Vec<String> {
     raw_args
 }
 
-pub fn determine_script_for(cmd: Command) -> &'static str {
-    match cmd {
-        Command::Update { target: UpdateTarget::Daemon } => {
-            "./scripts/daemon/update_daemon.sh"
-        }
-        Command::Update { target: UpdateTarget::Service } => {
-            "./scripts/service/update_sasha_service.sh"
-        }
-        Command::Start { target: StartTarget::Service } => {
-            "./scripts/service/start_sasha_service.sh"
-        }
-        Command::Stop { target: StopTarget::Service } => {
-            "./scripts/service/stop_sasha_service.sh"
-        }
-        Command::Logs { target: LogsTarget::Service } => {
-            "./scripts/utils/start_live_sasha_logs.sh"
-        }
-        Command::MarkWindow { slot } => {
-            "./scripts/test.sh"
-        }
-        Command::FocusWindow { slot } => {
-            "./scripts/test.sh"
-        }
-    }
+pub async fn execute_request(cmd: RequestPattern) -> anyhow::Result<()> {
+    let json_payload = serde_json::to_string(&cmd)?;
+
+    eprintln!("CLI reached execute_request");
+    eprintln!("json payload: {json_payload}");
+
+    let runtime_dir = std::env::var("XDG_RUNTIME_DIR")
+        .expect("XDG_RUNTIME_DIR is not set");
+
+    let socket_path = format!("{runtime_dir}/sasha-commands.sock");
+
+    eprintln!("connecting to: {socket_path}");
+
+    let stream = UnixStream::connect(&socket_path).await?;
+
+    eprintln!("Connected");
+
+    let mut writer = BufWriter::new(stream);
+
+    writer.write_all(json_payload.as_bytes()).await?;
+    writer.write_all(b"\n").await?;
+    writer.flush().await?;
+
+    eprintln!("Sent command");
+
+    Ok(())
 }

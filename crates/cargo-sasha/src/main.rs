@@ -1,11 +1,11 @@
 mod cli;
-mod script;
+mod command;
 
-use cli::SashaCargoParser;
+use command::CargoParser;
 use clap::Parser;
 
-fn main() {
-    let args = SashaCargoParser::parse_from(cli::cargo_args());
-    let script = cli::determine_script_for(args.command);
-    script::run_script(script);
+#[tokio::main]
+async fn main() {
+    let args = CargoParser::parse_from(cli::cargo_args());
+    let _ = cli::execute_request(args.request_pattern).await;
 }
