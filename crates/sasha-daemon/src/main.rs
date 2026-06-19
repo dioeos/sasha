@@ -2,6 +2,7 @@ use tracing::{span, Level};
 
 mod daemon;
 mod client_handler;
+mod command_listener;
 mod logger;
 
 mod niri;
