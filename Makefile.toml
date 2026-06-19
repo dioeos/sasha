@@ -1,0 +1,62 @@
+[tasks.import-environment]
+script = '''
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "Importing system environment..."
+systemctl --user import-environment \
+  NIRI_SOCKET \
+  WAYLAND_DISPLAY \
+  DISPLAY \
+  XDG_CURRENT_DESKTOP \
+  XDG_SESSION_TYPE \
+  XDG_RUNTIME_DIR
+'''
+
+[tasks.build-daemon]
+dependencies = [ "import-environment" ]
+script = '''
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "Building Sasha Daemon..."
+cargo build -p sasha-daemon
+'''
+
+[tasks.restart-sasha-service]
+dependencies = [ "build-daemon" ]
+script = '''
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "Restarting Sasha Service..."
+systemctl --user restart sasha.service
+'''
+
+[tasks.dev-flow]
+dependencies = [
+  "import-environment",
+  "build-daemon",
+  "restart-sasha-service"
+]
+
+# ===========
+# ===========
+# ===========
+# ===========
+
+[tasks.live-logs]
+script = '''
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [ ! systemctl --user is-active --quiet sasha.service ]; then
+  echo "sasha.service not running:"
+  journalctl --user -u sasha.service -n 10
+fi
+
+journalctl --user -u sasha.service -n 100 -f
+'''
+
+[tasks.live-logs-flow]
+run_task = "live-logs"

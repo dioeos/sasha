@@ -1,2 +1,3 @@
 #!/usr/bin/env bash
-echo "Hello!"
+
+echo "Hello!" >> /tmp/sasha/mark-test.txt
