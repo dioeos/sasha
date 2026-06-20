@@ -1,11 +1,11 @@
+use std::sync::Arc;
 use tracing::{span, Level, info, error, debug};
-
 use tokio::sync::broadcast;
-
+use anyhow::{Context, Result};
 use crate::client_handler::ClientHandler;
 use crate::command_listener::CommandListener;
 use crate::stores::{WindowStore, WorkspaceStore, MarkStore};
-use crate::niri::{NiriListener};
+use crate::niri::{NiriListener, NiriConnector};
 use crate::events::{SashaEvent};
 
 pub struct Daemon {
@@ -15,7 +15,7 @@ pub struct Daemon {
 }
 
 impl Daemon {
-    pub fn new() -> Self {
+    pub fn new() -> Result<Self> {
         let daemon_span = span!(Level::INFO, "[DAEMON]::new()");
         let _guard = daemon_span.enter();
 
@@ -25,17 +25,18 @@ impl Daemon {
         let workspace_store = WorkspaceStore::new();
         let mark_store = MarkStore::new();
 
-
-        let niri_socket_path: String = std::env::var("NIRI_SOCKET")
-            .expect("NIRI_SOCKET is not set");
+        let niri_connector_arc = Arc::new(
+            NiriConnector::new_from_env()
+                .context("Failed to initialize Niri connector")?
+        );
 
         debug!("Loaded necessary dependencies to create daemon");
 
-        Self {
+        Ok(Self {
             niri_listener: NiriListener::new(
                 window_store,
                 workspace_store,
-                niri_socket_path,
+                niri_connector_arc.clone(),
                 tx.clone()
             ),
             client_handler: ClientHandler::new(
@@ -43,8 +44,8 @@ impl Daemon {
             ),
             command_listener: CommandListener::new(
                 mark_store
-            )
-        }
+            ),
+        })
     }
 
     pub async fn run(self) -> anyhow::Result<()> {
