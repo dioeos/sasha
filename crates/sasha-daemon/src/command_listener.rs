@@ -1,6 +1,8 @@
 use std::fs;
+use serde_json::json;
 use tokio::{io::{AsyncBufReadExt, AsyncWriteExt, BufReader}, net::{UnixListener, UnixStream}};
 use serde::Deserialize;
+use anyhow::{anyhow};
 use tracing::{span, Level, info, debug, warn};
 
 use crate::stores::MarkStore;
@@ -11,6 +13,9 @@ pub enum RequestEvent {
     MarkWindow {
         slot: u8,
     },
+    FocusWindow {
+        slot: u8
+    }
 }
 
 pub struct CommandListener {
@@ -70,7 +75,7 @@ impl CommandListener {
         match event {
             RequestEvent::MarkWindow { slot } => {
                 //get current focused ID and insert SLOT : ID
-                debug!("TRYING TO MAKR");
+                debug!("TRYING TO MARK");
                 let id = self.get_current_focused_window_id().await?;
 
                 if let Some(id) = id {
@@ -79,6 +84,10 @@ impl CommandListener {
                 } else {
                     warn!("No focused window to mark")
                 }
+                Ok(())
+            }
+            RequestEvent::FocusWindow { slot } => {
+                self.focus_requested_mark_window(slot).await?;
                 Ok(())
             }
         }
@@ -108,6 +117,44 @@ impl CommandListener {
             .and_then(|id| id.as_u64());
 
         Ok(id)
+    }
+
+    async fn focus_requested_mark_window(&self, slot: u8) -> anyhow::Result<()> {
+        let window_id = self.mark_store.map
+            .get(&slot)
+            .ok_or_else(|| anyhow!("No window marked in slot {slot}"))?;
+
+        let request = json!({
+            "Action": {
+                "FocusWindow": {
+                    "id": window_id
+                }
+            }
+        });
+
+        let niri_socket_path: String = std::env::var("NIRI_SOCKET")
+            .expect("NIRI_SOCKET is not set");
+
+        let stream = UnixStream::connect(niri_socket_path).await?;
+        let mut reader = BufReader::new(stream);
+
+        let payload = serde_json::to_string(&request)?;
+
+        reader
+            .get_mut()
+            .write_all(payload.as_bytes())
+            .await?;
+
+        reader
+            .get_mut()
+            .write_all(b"\n").await?;
+
+        reader
+            .get_mut()
+            .flush()
+            .await?;
+
+        Ok(())
     }
 
 }

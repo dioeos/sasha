@@ -13,5 +13,6 @@ pub struct CargoParser {
 #[derive(Subcommand, Serialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum RequestPattern {
-    MarkWindow { slot: u8 }
+    MarkWindow { slot: u8 },
+    FocusWindow { slot: u8 }
 }
