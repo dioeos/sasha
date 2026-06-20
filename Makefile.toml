@@ -1,3 +1,6 @@
+[config]
+default_to_workspace = false
+
 [tasks.import-environment]
 script = '''
 #!/usr/bin/env bash
