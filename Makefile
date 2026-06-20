@@ -1,3 +1,8 @@
+dev:
+	cargo make --no-workspace daemon-dev-flow && \
+		cargo make --no-workspace cli-dev-flow && \
+		cargo make --no-workspace live-logs-flow
+
 cargo-sasha:
 	cargo install \
 		--path crates/cargo-sasha \
