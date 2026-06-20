@@ -1,6 +1,6 @@
 /* Events that the sasha daemon broadcasts*/
 use serde::{Deserialize, Serialize};
-use crate::niri::{NiriEvent, NiriWorkspace, NiriWindow};
+use crate::niri::{NiriWorkspace, NiriWindow};
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub enum SashaEvent {

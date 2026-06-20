@@ -1,16 +1,17 @@
-use tracing::{span, Level, info, error, debug, trace};
+use tracing::{span, Level, info, error, debug};
 
 use tokio::sync::broadcast;
 
 use crate::client_handler::ClientHandler;
-use crate::stores::{WindowStore, WorkspaceStore};
+use crate::command_listener::CommandListener;
+use crate::stores::{WindowStore, WorkspaceStore, MarkStore};
 use crate::niri::{NiriListener};
 use crate::events::{SashaEvent};
 
 pub struct Daemon {
-    tx: broadcast::Sender<SashaEvent>,
     niri_listener: NiriListener,
-    client_handler: ClientHandler
+    client_handler: ClientHandler,
+    command_listener: CommandListener
 }
 
 impl Daemon {
@@ -22,6 +23,8 @@ impl Daemon {
 
         let window_store = WindowStore::new();
         let workspace_store = WorkspaceStore::new();
+        let mark_store = MarkStore::new();
+
 
         let niri_socket_path: String = std::env::var("NIRI_SOCKET")
             .expect("NIRI_SOCKET is not set");
@@ -36,9 +39,11 @@ impl Daemon {
                 tx.clone()
             ),
             client_handler: ClientHandler::new(
-                tx.clone()
+                tx
             ),
-            tx,
+            command_listener: CommandListener::new(
+                mark_store
+            )
         }
     }
 
@@ -55,11 +60,18 @@ impl Daemon {
             }
         });
 
+        tokio::spawn(async move {
+            if let Err(err) = self.command_listener.run().await {
+                error!("Could not handle commands");
+            }
+        });
+
         debug!("Preparing to run client handler for daemon");
         info!("Starting client handler for daemon...");
 
         //begins listening for client connections
         self.client_handler.run().await?;
+
         Ok(())
     }
 }

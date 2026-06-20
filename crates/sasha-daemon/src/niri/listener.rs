@@ -1,9 +1,8 @@
 use tokio::sync::broadcast;
-use tokio::sync::broadcast::{Sender};
 use tokio::net::UnixStream;
-use tokio::io::{AsyncWriteExt, AsyncBufReadExt, BufReader, BufWriter};
+use tokio::io::{AsyncWriteExt, AsyncBufReadExt, BufReader};
 
-use tracing::{span, Level, info, error, debug, trace, warn};
+use tracing::{span, Level, info, debug, warn};
 
 use crate::events::{SashaEvent, SashaWindow, SashaWorkspace};
 use crate::stores::{WindowStore, WorkspaceStore};

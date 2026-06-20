@@ -17,8 +17,8 @@ impl WorkspaceStore {
             .collect()
     }
 
-    pub fn get_workspace_idx(&self, key: &u64) -> Option<&u64> {
-        self.map.get(key).map(|workspace| &workspace.idx)
-    }
+    // pub fn get_workspace_idx(&self, key: &u64) -> Option<&u64> {
+    //     self.map.get(key).map(|workspace| &workspace.idx)
+    // }
 
 }

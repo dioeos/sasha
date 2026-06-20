@@ -1,7 +1,7 @@
 use std::fs;
 use tokio::{io::{BufWriter, AsyncWriteExt}, net::{UnixListener, UnixStream}, sync::broadcast};
 
-use tracing::{span, Level, info, error, debug, trace, warn};
+use tracing::{span, Level, info, debug, warn};
 
 use crate::events::SashaEvent;
 
