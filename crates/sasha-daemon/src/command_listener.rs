@@ -1,45 +1,47 @@
-use std::fs;
+use std::{env::var_os, ffi::OsString, fs, io::ErrorKind, path::PathBuf, sync::Arc};
 use serde_json::json;
 use tokio::{io::{AsyncBufReadExt, AsyncWriteExt, BufReader}, net::{UnixListener, UnixStream}};
-use serde::Deserialize;
-use anyhow::{anyhow};
+use anyhow::{Context, anyhow, Result};
 use tracing::{span, Level, info, debug, warn};
 
-use crate::stores::MarkStore;
-
-#[derive(Debug, Deserialize)]
-#[serde(tag = "type", rename_all = "snake_case")]
-pub enum RequestEvent {
-    MarkWindow {
-        slot: u8,
-    },
-    FocusWindow {
-        slot: u8
-    }
-}
+use crate::events::RequestEvent;
+use crate::{command_handler::CommandHandler, niri::NiriConnector, stores::MarkStore};
 
 pub struct CommandListener {
-    mark_store: MarkStore
+    mark_store: MarkStore,
+    niri_connector: Arc<NiriConnector>,
 }
 
 impl CommandListener {
-    pub fn new(mk_store: MarkStore) -> Self {
+    pub fn new(
+        mk_store: MarkStore,
+        connector: Arc<NiriConnector>
+    ) -> Self {
+
         let command_listener_span = span!(Level::INFO, "[COMMAND]::new()");
         let _guard = command_listener_span.enter();
 
         Self {
-            mark_store: mk_store
+            mark_store: mk_store,
+            niri_connector: connector
         }
     }
 
-    pub async fn run(mut self) -> anyhow::Result<()> {
+    pub async fn run(self) -> anyhow::Result<()> {
         let command_run_span = span!(Level::INFO, "[COMMAND]::run()");
         let _guard = command_run_span.enter();
 
-        let runtime_dir = std::env::var("XDG_RUNTIME_DIR").expect("XDG_RUNTIME_DIR is not set");
-        let socket_path = format!("{runtime_dir}/sasha-commands.sock");
-        let _ = fs::remove_file(&socket_path);
-        let listener = UnixListener::bind(&socket_path)?;
+        let xdg_os_string: OsString = var_os("XDG_RUNTIME_DIR")
+            .ok_or_else(|| anyhow!("Cannot find XDG_RUNTIME_DIR var"))?;
+        let xdg_runtime_path: PathBuf = PathBuf::from(xdg_os_string).join("sasha-commands.sock");
+
+        let listener: UnixListener = Self::create_unix_listener(xdg_runtime_path)
+            .context("Failed to create Sasha command listener")?;
+
+        let mut handler = CommandHandler::new(
+            self.mark_store,
+            self.niri_connector
+        );
 
         loop {
             let mut response = String::new();
@@ -49,112 +51,38 @@ impl CommandListener {
 
             let _bytes_read = reader.read_line(&mut response).await?;
 
-            match self.read_cli_request(&response) {
-                Ok(event) => {
-                    debug!("READ EVENT!");
-                    let _ = self.handle_request_event(event).await?;
-                }
-                Err(err) => {
-                    debug!("Something went wrong")
-                }
-            }
+            let request_model: RequestEvent = Self::read_cli_request(&response)?;
+            handler.handle_request_event(request_model).await?;
         }
     }
 
-    fn read_cli_request(&self, response: &str) -> anyhow::Result<RequestEvent> {
-        debug!("Reading request");
-        match serde_json::from_str(response) {
-            Ok(data) => {
-                Ok(data)
-            }
-            Err(err) => Err(err.into())
-        }
-    }
-
-    async fn handle_request_event(&mut self, event: RequestEvent) -> anyhow::Result<()> {
-        match event {
-            RequestEvent::MarkWindow { slot } => {
-                //get current focused ID and insert SLOT : ID
-                debug!("TRYING TO MARK");
-                let id = self.get_current_focused_window_id().await?;
-
-                if let Some(id) = id {
-                    self.mark_store.map.insert(slot, id);
-                    debug!("INSERTED WINDOW");
+    fn create_unix_listener(socket_path: PathBuf) -> Result<UnixListener> {
+        fs::remove_file(&socket_path)
+            .or_else(|err| {
+                if err.kind() == ErrorKind::NotFound {
+                    Ok(())
                 } else {
-                    warn!("No focused window to mark")
+                    Err(err)
                 }
-                Ok(())
-            }
-            RequestEvent::FocusWindow { slot } => {
-                self.focus_requested_mark_window(slot).await?;
-                Ok(())
-            }
-        }
+            })
+        .with_context(|| format!(
+                "Failed to remove stale socket at {}",
+                socket_path.display()
+        ))?;
+
+        let listener = UnixListener::bind(&socket_path)
+            .with_context(|| format!(
+                    "Failed to bind to socket at {}",
+                    socket_path.display()
+            ))?;
+        Ok(listener)
     }
 
-    async fn get_current_focused_window_id(&self) -> anyhow::Result<Option<u64>> {
-        let niri_socket_path: String = std::env::var("NIRI_SOCKET")
-            .expect("NIRI_SOCKET is not set");
+    fn read_cli_request(response: &str) -> Result<RequestEvent> {
+        let request = serde_json::from_str(response)
+            .context("Failed to parse CLI JSON request")?;
 
-        let stream = UnixStream::connect(niri_socket_path).await?;
-        let mut reader = BufReader::new(stream);
-
-        reader
-            .get_mut()
-            .write_all(b"\"FocusedWindow\"\n")
-            .await?;
-
-        reader.get_mut().flush().await?;
-        let mut response = String::new();
-        reader.read_line(&mut response).await?;
-        let json: serde_json::Value = serde_json::from_str(&response)?;
-
-        let id = json
-            .get("Ok")
-            .and_then(|ok| ok.get("FocusedWindow"))
-            .and_then(|window| window.get("id"))
-            .and_then(|id| id.as_u64());
-
-        Ok(id)
-    }
-
-    async fn focus_requested_mark_window(&self, slot: u8) -> anyhow::Result<()> {
-        let window_id = self.mark_store.map
-            .get(&slot)
-            .ok_or_else(|| anyhow!("No window marked in slot {slot}"))?;
-
-        let request = json!({
-            "Action": {
-                "FocusWindow": {
-                    "id": window_id
-                }
-            }
-        });
-
-        let niri_socket_path: String = std::env::var("NIRI_SOCKET")
-            .expect("NIRI_SOCKET is not set");
-
-        let stream = UnixStream::connect(niri_socket_path).await?;
-        let mut reader = BufReader::new(stream);
-
-        let payload = serde_json::to_string(&request)?;
-
-        reader
-            .get_mut()
-            .write_all(payload.as_bytes())
-            .await?;
-
-        reader
-            .get_mut()
-            .write_all(b"\n").await?;
-
-        reader
-            .get_mut()
-            .flush()
-            .await?;
-
-        Ok(())
+        Ok(request)
     }
 
 }

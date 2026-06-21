@@ -1,7 +1,9 @@
+use anyhow::Context;
 use tracing::{span, Level};
 
 mod daemon;
 mod client_handler;
+mod command_handler;
 mod command_listener;
 mod logger;
 
@@ -16,7 +18,9 @@ async fn main() -> anyhow::Result<()>{
     let main_spain = span!(Level::INFO, "[MAIN]");
     let _guard = main_spain.enter();
 
-     let sasha_daemon = daemon::Daemon::new();
+     let sasha_daemon = daemon::Daemon::new()
+         .context("Failed to create Sasha daemon")?;
+
      sasha_daemon.run().await?;
 
     Ok(())

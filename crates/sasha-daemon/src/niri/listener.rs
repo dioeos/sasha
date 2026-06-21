@@ -1,3 +1,7 @@
+use std::sync::Arc;
+
+use anyhow::{Result, Context};
+
 use tokio::sync::broadcast;
 use tokio::net::UnixStream;
 use tokio::io::{AsyncWriteExt, AsyncBufReadExt, BufReader};
@@ -8,25 +12,30 @@ use crate::events::{SashaEvent, SashaWindow, SashaWorkspace};
 use crate::stores::{WindowStore, WorkspaceStore};
 
 use super::models::{NiriEvent, NiriWorkspace, NiriWindow};
+use super::connector::{NiriConnector};
 
 
 pub struct NiriListener {
     window_store: WindowStore,
     workspace_store: WorkspaceStore,
-    niri_socket_path: String,
+    niri_connector: Arc<NiriConnector>,
     broadcaster: broadcast::Sender<SashaEvent>
 }
 
 impl NiriListener {
-
-    pub fn new(ww_store: WindowStore, ws_store: WorkspaceStore, niri_socket_path: String, tx: broadcast::Sender<SashaEvent>) -> Self {
+    pub fn new(
+        ww_store: WindowStore,
+        ws_store: WorkspaceStore,
+        connector: Arc<NiriConnector>,
+        tx: broadcast::Sender<SashaEvent>
+    ) -> Self {
         let listener_span = span!(Level::INFO, "[LISTENER]::new()");
         let _guard = listener_span.enter();
 
         Self {
             window_store: ww_store,
             workspace_store: ws_store,
-            niri_socket_path: niri_socket_path,
+            niri_connector: connector,
             broadcaster: tx
         }
     }
@@ -35,7 +44,14 @@ impl NiriListener {
         let lister_run_span = span!(Level::INFO, "[LISTENER]::run()");
         let _guard = lister_run_span.enter();
 
-        let mut reader = self.connect_to_niri().await?;
+        let stream: UnixStream = self.niri_connector
+            .connect()
+            .await
+            .context("Failed to create unix stream with Niri")?;
+
+        let mut reader: BufReader<UnixStream> = BufReader::new(stream);
+        self.send_event_stream_handshake(&mut reader).await?;
+
 
         loop {
             let mut response = String::new();
@@ -48,7 +64,6 @@ impl NiriListener {
 
             debug!("Raw niri response from EventStream: {}", response);
 
-            // let event: NiriEvent = self.read_niri_event(&response)?;
             match self.read_niri_event(&response) {
                 Ok(event) => {
                     self.handle_niri_event(event);
@@ -61,18 +76,16 @@ impl NiriListener {
         Ok(())
     }
 
-    async fn connect_to_niri(&self) -> anyhow::Result<BufReader<UnixStream>> {
-        let stream = UnixStream::connect(&self.niri_socket_path).await?;
-        let mut reader = BufReader::new(stream);
-
+    async fn send_event_stream_handshake(
+        &self,
+        reader: &mut BufReader<UnixStream>
+    ) -> Result<()> {
         reader
             .get_mut()
             .write_all(b"\"EventStream\"\n")
-            .await?;
-
-        reader.get_mut().flush().await?;
-
-        Ok(reader)
+            .await
+            .context("Failed to send EventStream handshake to Niri")?;
+        Ok(())
     }
 
     fn read_niri_event(&self, response: &str) -> anyhow::Result<NiriEvent> {
