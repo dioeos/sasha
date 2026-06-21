@@ -10,8 +10,8 @@ use crate::events::{SashaEvent};
 
 pub struct Daemon {
     niri_listener: NiriListener,
+    command_listener: CommandListener,
     client_handler: ClientHandler,
-    command_listener: CommandListener
 }
 
 impl Daemon {
@@ -39,11 +39,12 @@ impl Daemon {
                 niri_connector_arc.clone(),
                 tx.clone()
             ),
+            command_listener: CommandListener::new(
+                mark_store,
+                niri_connector_arc
+            ),
             client_handler: ClientHandler::new(
                 tx
-            ),
-            command_listener: CommandListener::new(
-                mark_store
             ),
         })
     }
